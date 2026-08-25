@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Trainingsplan">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#12171b">
+<title>Trainingsplan</title>
+<style>
+  :root{
+    --bg:#12171b; --surface:#1b2229; --surface-2:#232c34; --border:#2e3941;
+    --text:#edf1f3; --text-dim:#8695a0; --accent:#58b368; --accent-bg:#20301f;
+    --amber:#e0a63e; --amber-bg:#332a13; --slate:#6c8cbf; --slate-bg:#1b2530;
+    --red:#e0653e; --red-bg:#331d13;
+  }
+  *{box-sizing:border-box;}
+  @media (prefers-reduced-motion: reduce){ *{ transition:none !important; animation:none !important; } }
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+  body{padding-bottom:48px;}
+  .wrap{max-width:480px;margin:0 auto;padding:0 14px;}
+  header.top{position:sticky;top:0;z-index:10;background:var(--bg);
+    border-bottom:1px solid var(--border);padding:14px 0 10px;}
+  h1{font-size:19px;font-weight:800;letter-spacing:-0.01em;margin:0 0 2px;}
+  .sub{font-size:12px;color:var(--text-dim);margin:0 0 10px;}
+
+  .weeknav{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:6px;}
+  .navbtn{width:32px;height:32px;border-radius:9px;border:1px solid var(--border);background:var(--surface);
+    color:var(--text);font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:0 0 auto;}
+  .navbtn:focus-visible{outline:2px solid var(--accent);}
+  .weeknav-center{text-align:center;cursor:pointer;user-select:none;}
+  .weeknum{font-size:17px;font-weight:800;}
+  .cycleinfo{font-size:11px;color:var(--text-dim);margin-top:1px;}
+  .jumpwrap{display:none;gap:6px;justify-content:center;margin:8px 0 2px;}
+  .jumpwrap.show{display:flex;}
+  .jumpwrap input{width:76px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;
+    color:var(--text);padding:6px 8px;font-size:14px;}
+  .jumpwrap button{background:var(--accent);color:#0d1310;border:none;border-radius:8px;padding:6px 14px;
+    font-weight:700;font-size:13px;cursor:pointer;}
+
+  .weekstrip{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;margin-top:8px;}
+  .weekstrip::-webkit-scrollbar{display:none;}
+  .wtab{flex:0 0 auto;width:32px;height:32px;border-radius:50%;border:2px solid var(--border);
+    background:var(--surface);color:var(--text-dim);font-weight:700;font-size:12.5px;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  .wtab[data-active="1"]{transform:scale(1.08);}
+
+  .phaserow{display:flex;align-items:center;justify-content:space-between;margin-top:10px;}
+  .phasepill{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+    padding:4px 9px;border-radius:99px;}
+  .weekprog{font-size:12px;color:var(--text-dim);font-variant-numeric:tabular-nums;}
+  .banner{margin-top:8px;font-size:12.5px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);
+    background:var(--surface);color:var(--text-dim);}
+
+  main{padding-top:12px;}
+  .day{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:9px;overflow:hidden;}
+  .day-head{display:flex;align-items:center;justify-content:space-between;padding:12px 13px;cursor:pointer;user-select:none;}
+  .day-head:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
+  .day-title{display:flex;flex-direction:column;gap:1px;min-width:0;}
+  .day-title .lbl{font-weight:700;font-size:14.5px;display:flex;align-items:center;flex-wrap:wrap;}
+  .day-title .s{font-size:12px;color:var(--text-dim);}
+  .tag-override{font-size:9.5px;color:var(--amber);border:1px solid var(--amber);border-radius:5px;
+    padding:1px 4px;margin-left:6px;font-weight:700;letter-spacing:.02em;}
+  .day-right{display:flex;align-items:center;gap:6px;flex:0 0 auto;}
+  .count{font-size:12px;color:var(--text-dim);font-variant-numeric:tabular-nums;}
+  .iconbtn{width:26px;height:26px;border-radius:7px;background:var(--surface-2);border:1px solid var(--border);
+    color:var(--text-dim);font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  .chev{width:9px;height:9px;border-right:2px solid var(--text-dim);border-bottom:2px solid var(--text-dim);
+    transform:rotate(-45deg);transition:transform .15s;}
+  .day[data-open="1"] .chev{transform:rotate(45deg);}
+  .day-body{display:none;padding:0 13px 10px;}
+  .day[data-open="1"] .day-body{display:block;}
+  .rest-note{font-size:13px;color:var(--text-dim);padding:2px 0 4px;}
+
+  .reassign{display:none;padding:8px 13px 4px;border-top:1px solid var(--border);}
+  .day[data-reassign="1"] .reassign{display:block;}
+  .reassign-label{font-size:11px;color:var(--text-dim);margin-bottom:6px;}
+  .chiprow{display:flex;gap:6px;flex-wrap:wrap;}
+  .chip{border:1px solid var(--border);background:var(--surface-2);color:var(--text);border-radius:8px;
+    padding:6px 11px;font-size:13px;font-weight:700;cursor:pointer;}
+  .chip[data-active="1"]{background:var(--accent);color:#0d1310;border-color:var(--accent);}
+  .resetlink{font-size:11px;color:var(--text-dim);text-decoration:underline;background:none;border:none;
+    cursor:pointer;padding:0;margin-top:7px;}
+
+  .ex{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-top:1px solid var(--border);}
+  .ex:first-child{border-top:none;}
+  .chk{flex:0 0 auto;width:24px;height:24px;border-radius:50%;border:2px solid var(--border);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;margin-top:1px;background:transparent;}
+  .chk[data-checked="1"]{background:var(--accent);border-color:var(--accent);}
+  .chk svg{width:13px;height:13px;opacity:0;}
+  .chk[data-checked="1"] svg{opacity:1;}
+  .ex-main{flex:1;min-width:0;}
+  .ex-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
+  .ex-name{font-size:14px;font-weight:600;}
+  .ex-name.done{color:var(--text-dim);text-decoration:line-through;text-decoration-color:var(--border);}
+  .ex-target{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--accent);white-space:nowrap;}
+  .ex-cue{font-size:11.5px;color:var(--text-dim);margin-top:1px;}
+  .vidlink{flex:0 0 auto;width:24px;height:24px;border-radius:7px;background:var(--surface-2);
+    display:flex;align-items:center;justify-content:center;margin-top:1px;text-decoration:none;}
+  .vidlink svg{width:10px;height:10px;fill:var(--text-dim);}
+
+  .simplechk{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border);}
+  .simplechk:first-child{border-top:none;}
+  .simplechk .lbl2{font-size:14px;font-weight:600;flex:1;}
+  .simplechk .lbl2.done{color:var(--text-dim);text-decoration:line-through;text-decoration-color:var(--border);}
+
+  .extras{margin-top:14px;}
+  .ext{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:9px;overflow:hidden;}
+  .ext-head{display:flex;align-items:center;justify-content:space-between;padding:12px 13px;cursor:pointer;font-weight:700;font-size:14px;}
+  .ext-body{display:none;padding:0 13px 13px;font-size:13px;color:var(--text-dim);}
+  .ext[data-open="1"] .ext-body{display:block;}
+  .ext ul{margin:0;padding-left:16px;}
+  .ext li{margin-bottom:5px;}
+  .ext li:last-child{margin-bottom:0;}
+
+  .tplrow{padding:9px 0;border-top:1px solid var(--border);}
+  .tplrow:first-child{border-top:none;padding-top:2px;}
+  .tplrow .tpllabel{font-size:13px;font-weight:700;margin-bottom:6px;color:var(--text);}
+
+  .checkin-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
+  .field label{display:block;font-size:11px;color:var(--text-dim);margin-bottom:3px;}
+  .field input{width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;
+    color:var(--text);font-size:14px;padding:7px 8px;font-variant-numeric:tabular-nums;}
+  .field input:focus-visible{outline:2px solid var(--accent);}
+  .histbtn{background:none;border:1px solid var(--border);color:var(--text-dim);font-size:12px;
+    padding:6px 10px;border-radius:8px;cursor:pointer;}
+  table.hist{width:100%;border-collapse:collapse;margin-top:10px;font-size:11.5px;}
+  table.hist th,table.hist td{padding:4px 3px;text-align:center;border-bottom:1px solid var(--border);}
+  table.hist th{color:var(--text-dim);font-weight:600;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Trainingsplan</h1>
+    <p class="sub">Di/Do Fußballtraining · So Spiel · Tage frei planbar</p>
+
+    <div class="weeknav">
+      <button class="navbtn" id="wprev" type="button" aria-label="Vorherige Woche">‹</button>
+      <div class="weeknav-center" id="weeknav-center">
+        <div class="weeknum">Woche <span id="wnum">1</span></div>
+        <div class="cycleinfo" id="cycleinfo"></div>
+      </div>
+      <button class="navbtn" id="wnext" type="button" aria-label="Nächste Woche">›</button>
+    </div>
+    <div class="jumpwrap" id="jumpwrap">
+      <input type="number" min="1" id="jumpinput" placeholder="Woche">
+      <button id="jumpgo" type="button">Los</button>
+    </div>
+
+    <div class="weekstrip" id="weekstrip"></div>
+    <div class="phaserow">
+      <span class="phasepill" id="phasepill"></span>
+      <span class="weekprog" id="weekprog"></span>
+    </div>
+    <div class="banner" id="banner" style="display:none;"></div>
+  </header>
+
+  <main>
+    <div id="days"></div>
+
+    <div class="extras">
+      <div class="ext" id="ext-template" data-open="0">
+        <div class="ext-head" data-toggle="ext-template"><span>⚙️ Standard-Wochenplan</span><span>▾</span></div>
+        <div class="ext-body">
+          <p style="margin:0 0 8px;">Gilt für alle Wochen, außer du verschiebst einen Tag einzeln (🔀 am jeweiligen Tag).</p>
+          <div id="tpl-rows"></div>
+        </div>
+      </div>
+
+      <div class="ext" id="ext-checkin" data-open="0">
+        <div class="ext-head" data-toggle="ext-checkin"><span>✅ Wochen-Check-in</span><span>▾</span></div>
+        <div class="ext-body">
+          <div class="checkin-grid">
+            <div class="field"><label>Gewicht (kg)</label><input type="number" step="0.1" data-ci="gewicht"></div>
+            <div class="field"><label>Bauchumfang (cm)</label><input type="number" step="0.5" data-ci="bauch"></div>
+            <div class="field"><label>Ø Schritte</label><input type="number" step="100" data-ci="schritte"></div>
+            <div class="field"><label>Ø Schlaf (h)</label><input type="number" step="0.1" data-ci="schlaf"></div>
+            <div class="field"><label>Fitness (1–10)</label><input type="number" min="1" max="10" data-ci="fitness"></div>
+            <div class="field"><label>Energie (1–10)</label><input type="number" min="1" max="10" data-ci="energie"></div>
+          </div>
+          <div class="field" style="margin-bottom:8px;">
+            <label>Bauchrolle-Fortschritt (Notiz)</label>
+            <input type="text" placeholder="z.B. Rollweg ~35cm, sauber" data-ci="rolle">
+          </div>
+          <button class="histbtn" id="histtoggle" type="button">Verlauf anzeigen</button>
+          <div id="histwrap"></div>
+        </div>
+      </div>
+
+      <div class="ext" id="ext-rolle" data-open="0">
+        <div class="ext-head" data-toggle="ext-rolle"><span>🛡️ Bauchrolle – Sicherheit</span><span>▾</span></div>
+        <div class="ext-body">
+          <ul>
+            <li>Rollweg nur so weit, wie die Bauchspannung hält.</li>
+            <li>Vor dem Start: Bauchnabel einziehen, Gesäß anspannen.</li>
+            <li>Rücken hängt durch? → Sofort stoppen, Rollweg war zu weit.</li>
+            <li>Rückenschmerz (nicht Muskelkater) → Satz sofort abbrechen.</li>
+            <li>Steigerung: erst Rollweg verlängern, dann erst mehr Wdh.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="ext" id="ext-ernaehrung" data-open="0">
+        <div class="ext-head" data-toggle="ext-ernaehrung"><span>🍽️ Ernährung</span><span>▾</span></div>
+        <div class="ext-body">
+          <ul>
+            <li>Ziel: 2.000–2.150 kcal/Tag (Schätzung, an Trend kalibrieren)</li>
+            <li>Protein ~130 g · Fett ~65–70 g · KH ~230–250 g</li>
+            <li>Bauchfett ist nicht gezielt trainierbar – Sichtbarkeit kommt vom Kaloriendefizit, nicht von der Bauchrolle</li>
+            <li>Trinkmenge: ~2,3 L + 0,5–1 L an intensiven Tagen</li>
+            <li>Süßigkeiten nicht verbieten: 80/20-Prinzip</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="ext" id="ext-regeln" data-open="0">
+        <div class="ext-head" data-toggle="ext-regeln"><span>📋 Anpassungsregeln</span><span>▾</span></div>
+        <div class="ext-body">
+          <ul>
+            <li>Gewicht stagniert 2–3 Wochen → Kalorien −100–150 kcal</li>
+            <li>Verlust &gt;0,5–0,65 kg/Woche → Kalorien +150–200 kcal</li>
+            <li>Fußball-Leistung sinkt → mehr Kohlenhydrate/Erholung, Workout-Volumen kürzen</li>
+            <li>Schmerz (nicht Muskelkater) → Übung pausieren; hält es 1 Woche an → Arzt/Physio</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const NAMES = {
+    A1:"Liegestütze", A2:"Rudern (Tisch)", A3:"Pike Push-up", A4:"Dips (Stuhl)", A5:"Bauchrolle", A6:"Plank",
+    B1:"Glute Bridge / Hip Thrust", B2:"Beincurl mit Handtuch", B3:"Single-Leg RDL", B4:"Side Plank + Abduction",
+    B5:"Wadenheben einbeinig", B6:"Bauchrolle (langsam)",
+    C1:"Hüftbeuger-Dehnung", C2:"World's Greatest Stretch", C3:"Squat (leicht)", C4:"Bird-Dog",
+    C5:"Bauchrolle (kurz)", C6:"Aktivierungs-Cardio",
+    D1:"Oberschenkelrückseite (Dehnung)", D2:"Oberschenkelvorderseite (Dehnung)", D3:"Wadendehnung (Wand)",
+    D4:"Brust/Schulter (Türrahmen)", D5:"Unterer Rücken (Kindhaltung)", D6:"Rumpfrotation (sitzend)"
+  };
+
+  const CUES = {
+    A1:"Körper gerade Linie, Ellbogen 45°", A2:"Schulterblätter zusammen, Körper gerade",
+    A3:"Po hoch, Kopf zwischen Armen absenken", A4:"Ellbogen nach hinten, nicht zu tief",
+    A5:"Nur so weit wie Spannung hält", A6:"Bauch/Po anspannen, Hüfte nicht hochschieben",
+    B1:"Gesäß anspannen, kein Hohlkreuz", B2:"Hüfte oben halten, langsam strecken & beugen",
+    B3:"Hüfte als Scharnier, Rücken gerade", B4:"Hüfte nicht absinken lassen",
+    B5:"Kontrolliert, voll absenken", B6:"Langsames Tempo, 3–4 Sek. je Richtung",
+    C1:"Becken nach vorne kippen, kein Hohlkreuz", C2:"Kontrolliert rotieren",
+    C3:"Knie in Zehenrichtung, Fersen unten", C4:"Rücken stabil, langsames Tempo",
+    C5:"Kurzer Rollweg, Technik-Fokus", C6:"Locker, nicht erschöpfen",
+    D1:"Knie leicht gebeugt, aus der Hüfte beugen", D2:"Ferse Richtung Po ziehen, Knie eng zusammen",
+    D3:"Hinteres Bein gestreckt, Ferse am Boden", D4:"Unterarm am Rahmen, Körper leicht nach vorne lehnen",
+    D5:"Gesäß Richtung Fersen, Arme lang nach vorne", D6:"Aus dem Brustkorb drehen, Becken bleibt vorne"
+  };
+
+  const VIDEOS = {
+    A1:"https://www.youtube.com/watch?v=s1X8e4JFdbE",
+    A2:"https://www.youtube.com/watch?v=6NTruShwwKk",
+    A3:"https://www.youtube.com/watch?v=pHR5yG6xBps",
+    A4:"https://www.youtube.com/watch?v=AWz_7B1cch0",
+    A5:"https://www.youtube.com/watch?v=NbudTqiwguk",
+    A6:"https://www.youtube.com/watch?v=62SXSsM8A2o",
+    B1:"https://www.youtube.com/watch?v=18GVqjfHy-M",
+    B2:"https://www.youtube.com/watch?v=2phNwmuET64",
+    B3:"https://www.youtube.com/watch?v=gz9l8UA_KXs",
+    B4:"https://www.youtube.com/watch?v=ifYBvRihSEo",
+    B5:"https://www.youtube.com/watch?v=Ux47hU-ePXs",
+    B6:"https://www.youtube.com/watch?v=NbudTqiwguk",
+    C1:"https://www.youtube.com/watch?v=-rsIS-wl-ig",
+    C2:"https://www.youtube.com/watch?v=T6j7BpxeqqU",
+    C3:"https://www.youtube.com/watch?v=CKcDiJnLaLY",
+    C4:"https://www.youtube.com/watch?v=jrK_rA4ATeg",
+    C5:"https://www.youtube.com/watch?v=NbudTqiwguk",
+    C6:null,
+    D1:"https://www.youtube.com/watch?v=2s2t3mEYZNo",
+    D2:"https://www.youtube.com/watch?v=Td-9CSgSFhs",
+    D3:"https://www.youtube.com/watch?v=D8UIL5bsm7w",
+    D4:"https://www.youtube.com/watch?v=B9uY01NoqBg",
+    D5:"https://www.youtube.com/watch?v=q-_M3Cfqmj4",
+    D6:"https://www.youtube.com/watch?v=pLerj04KsHw"
+  };
+
+  // Index 0..7 = Position 1..8 innerhalb eines 8-Wochen-Zyklus
+  const TARGETS = {
+    A1:["3×8","3×10","3×12","4×10","2×8","4×12","4×14","Max-Test"],
+    A2:["3×8","3×10","3×12","4×10","2×8","4×12","4×14","Max-Test"],
+    A3:["3×6","3×8","3×10","4×8","2×6","4×10","4×12","Max-Test"],
+    A4:["3×8","3×10","3×12","4×10","2×8","4×12","4×14","Max-Test"],
+    A5:["3×5","3×6","3×8","4×8","2×6","4×10","4×12","Max-Test"],
+    A6:["3×30s","3×40s","3×50s","4×40s","2×30s","4×50s","4×60s","Max-Test"],
+    B1:["3×12","3×15","3×10/B","4×10/B","2×10","4×12/B","4×14/B","Max-Test"],
+    B2:["3×4","3×5","3×6","4×5","2×4","4×6","4×7","Test"],
+    B3:["3×8/S","3×10/S","3×12/S","4×10/S","2×8/S","4×12/S","4×14/S","Max-Test"],
+    B4:["3×8/S","3×10/S","3×12/S","4×10/S","2×8/S","4×12/S","4×14/S","Max-Test"],
+    B5:["3×12/S","3×15/S","3×18/S","4×15/S","2×12/S","4×18/S","4×20/S","Max-Test"],
+    B6:["3×5","3×6","3×8","4×8","2×6","4×10","4×12","Max-Test"],
+    C1:["2×30s/S","2×30s/S","2×30s/S","2×30s/S","1×30s/S","2×40s/S","2×40s/S","2×40s/S"],
+    C2:["2×30s","2×30s","2×30s","2×30s","1×30s","2×40s","2×40s","2×40s"],
+    C3:["2×12","2×12","2×12","2×12","1×10","2×15","2×15","2×15"],
+    C4:["2×8/S","2×8/S","2×8/S","2×8/S","1×8/S","2×10/S","2×10/S","2×10/S"],
+    C5:["2×5","2×5","2×5","2×5","1×5","2×8","2×8","2×8"],
+    C6:["3 Min.","3 Min.","3 Min.","3 Min.","3 Min.","5 Min.","5 Min.","5 Min."],
+    D1:["2×30s/S","2×30s/S","2×30s/S","2×30s/S","1×30s/S","2×40s/S","2×40s/S","2×40s/S"],
+    D2:["2×30s/S","2×30s/S","2×30s/S","2×30s/S","1×30s/S","2×40s/S","2×40s/S","2×40s/S"],
+    D3:["2×30s/S","2×30s/S","2×30s/S","2×30s/S","1×30s/S","2×40s/S","2×40s/S","2×40s/S"],
+    D4:["2×30s/S","2×30s/S","2×30s/S","2×30s/S","1×30s/S","2×40s/S","2×40s/S","2×40s/S"],
+    D5:["2×30s","2×30s","2×30s","2×30s","1×30s","2×40s","2×40s","2×40s"],
+    D6:["2×30s/S","2×30s/S","2×30s/S","2×30s/S","1×30s/S","2×40s/S","2×40s/S","2×40s/S"]
+  };
+
+  const WORKOUTS = {
+    A:{label:"Workout A", sub:"Oberkörper + Dehnen", ex:["A1","A2","A3","A4","A5","A6","D1","D2","D3"]},
+    B:{label:"Workout B", sub:"Stabilität + Dehnen", ex:["B1","B2","B3","B4","B5","B6","D4","D5","D6"]},
+    C:{label:"Workout C", sub:"kurz", ex:["C1","C2","C3","C4","C5","C6"]}
+  };
+
+  const DAYTYPE_META = {
+    A:{label:"Workout A", sub:"Oberkörper + Dehnen", kind:"workout", wk:"A"},
+    B:{label:"Workout B", sub:"Stabilität + Dehnen", kind:"workout", wk:"B"},
+    C:{label:"Workout C", sub:"kurz", kind:"workout", wk:"C"},
+    football:{label:"Fußballtraining", sub:"", kind:"football"},
+    match:{label:"Fußball (Spiel)", sub:"", kind:"match"},
+    rest:{label:"Regeneration", sub:"", kind:"rest"}
+  };
+
+  const CHIP_ORDER = ["A","B","C","football","match","rest"];
+  const CHIP_LABEL = {A:"A",B:"B",C:"C",football:"⚽",match:"🏆",rest:"😴"};
+  const CHIP_TITLE = {A:"Workout A",B:"Workout B",C:"Workout C",football:"Fußballtraining",match:"Spiel",rest:"Ruhetag"};
+
+  const DAY_KEYS = [["mo","Montag"],["di","Dienstag"],["mi","Mittwoch"],["do","Donnerstag"],["fr","Freitag"],["sa","Samstag"],["so","Sonntag"]];
+
+  const DEFAULT_TEMPLATE = {mo:"A", di:"football", mi:"B", do:"football", fr:"C", sa:"rest", so:"match"};
+
+  const PHASES = [
+    {name:"Aufbau/Technik", c:"slate"},
+    {name:"Aufbau/Technik", c:"slate"},
+    {name:"Progression 1", c:"accent"},
+    {name:"Progression 1", c:"accent"},
+    {name:"Deload", c:"amber"},
+    {name:"Progression 2", c:"accent"},
+    {name:"Progression 2", c:"accent"},
+    {name:"Test/Peak", c:"red"}
+  ];
+
+  let checklist = {};
+  let checkin = {};
+  let template = Object.assign({}, DEFAULT_TEMPLATE);
+  let overrides = {};
+  let ui = {week:1, openDays:{mo:true}, openExt:{}};
+
+  async function loadJSON(key, fallback){
+    try{
+      if(window.storage){
+        const res = await window.storage.get(key);
+        return res && res.value ? JSON.parse(res.value) : fallback;
+      }
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    }catch(e){ return fallback; }
+  }
+  async function saveJSON(key, obj){
+    try{
+      if(window.storage){ await window.storage.set(key, JSON.stringify(obj)); }
+      else { localStorage.setItem(key, JSON.stringify(obj)); }
+    }catch(e){ console.error("storage save failed", e); }
+  }
+
+  function weekInCycle(w){ return ((w-1) % 8) + 1; }
+  function cycleNumber(w){ return Math.floor((w-1)/8) + 1; }
+
+  function effectiveType(week, dayKey){
+    if(overrides[week] && overrides[week][dayKey]) return overrides[week][dayKey];
+    return template[dayKey] || "rest";
+  }
+
+  function phaseColorVars(c){
+    if(c==="accent") return {fg:"#0d1310",bg:"var(--accent)",pillbg:"var(--accent-bg)",pillfg:"var(--accent)"};
+    if(c==="amber") return {fg:"#241b06",bg:"var(--amber)",pillbg:"var(--amber-bg)",pillfg:"var(--amber)"};
+    if(c==="red") return {fg:"#240f06",bg:"var(--red)",pillbg:"var(--red-bg)",pillfg:"var(--red)"};
+    return {fg:"#eaf0fa",bg:"var(--slate)",pillbg:"var(--slate-bg)",pillfg:"var(--slate)"};
+  }
+
+  function dayItems(type){
+    const meta = DAYTYPE_META[type] || DAYTYPE_META.rest;
+    if(meta.kind==="workout"){
+      return WORKOUTS[meta.wk].ex.map(id=>({id,label:NAMES[id]}));
+    }
+    if(meta.kind==="football") return [{id:"train",label:"Training"},{id:"mob",label:"Mobility danach (5 Min.)"}];
+    if(meta.kind==="match") return [{id:"match",label:"Spiel"},{id:"cooldown",label:"Cool-down + Mobility"}];
+    return [{id:"rest",label:"Kein Training / lockerer Spaziergang"}];
+  }
+
+  function weekTotals(w){
+    let total=0, done=0;
+    DAY_KEYS.forEach(([key])=>{
+      const type = effectiveType(w, key);
+      const items = dayItems(type);
+      items.forEach(it=>{
+        total++;
+        if(checklist["w"+w+"-"+key+"-"+it.id]) done++;
+      });
+    });
+    return {done, total};
+  }
+
+  function goWeek(w){
+    if(w<1) w=1;
+    ui.week = w;
+    saveJSON("ui-state", ui);
+    renderAll();
+  }
+
+  function renderWeekNav(){
+    document.getElementById("wnum").textContent = ui.week;
+    const idx = weekInCycle(ui.week)-1;
+    document.getElementById("cycleinfo").textContent =
+      "Zyklus "+cycleNumber(ui.week)+" · Trainingswoche "+(idx+1)+"/8";
+  }
+
+  function renderWeekStrip(){
+    const el = document.getElementById("weekstrip");
+    el.innerHTML = "";
+    const start = Math.max(1, ui.week-3);
+    for(let w=start; w<=start+6; w++){
+      const idx = weekInCycle(w)-1;
+      const col = phaseColorVars(PHASES[idx].c);
+      const btn = document.createElement("button");
+      btn.className = "wtab";
+      btn.type = "button";
+      btn.textContent = w;
+      btn.setAttribute("data-active", w===ui.week ? "1":"0");
+      if(w===ui.week){ btn.style.background = col.bg; btn.style.color = col.fg; btn.style.borderColor = col.bg; }
+      else { btn.style.borderColor = col.bg; btn.style.color = col.pillfg; }
+      btn.addEventListener("click", ()=> goWeek(w));
+      el.appendChild(btn);
+    }
+  }
+
+  function phaseBannerText(week){
+    const idx = weekInCycle(week)-1;
+    const cyc = cycleNumber(week);
+    if(idx===4) return "Deload-Woche: Volumen bewusst ~40% niedriger. Kein Ausfall – Erholung für die nächsten Wochen.";
+    if(idx===7) return "Testwoche: maximale saubere Wiederholungen/Zeit pro Übung. Nutze das Ergebnis, um ab Woche "+(week+1)+" (Zyklus "+(cyc+1)+") bewusst zu steigern.";
+    return null;
+  }
+
+  function renderPhaseRow(){
+    const idx = weekInCycle(ui.week)-1;
+    const col = phaseColorVars(PHASES[idx].c);
+    const pill = document.getElementById("phasepill");
+    pill.textContent = PHASES[idx].name;
+    pill.style.background = col.pillbg;
+    pill.style.color = col.pillfg;
+    const {done,total} = weekTotals(ui.week);
+    document.getElementById("weekprog").textContent = done+"/"+total+" erledigt";
+    const banner = document.getElementById("banner");
+    const txt = phaseBannerText(ui.week);
+    if(txt){ banner.style.display="block"; banner.textContent = txt; }
+    else { banner.style.display="none"; }
+  }
+
+  function svgCheck(){
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="#0d1310" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+  }
+  function svgPlay(){
+    return '<svg viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20"></polygon></svg>';
+  }
+
+  function buildChipRow(currentType, onPick){
+    const row = document.createElement("div");
+    row.className = "chiprow";
+    CHIP_ORDER.forEach(type=>{
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "chip";
+      chip.setAttribute("data-active", type===currentType ? "1":"0");
+      chip.textContent = CHIP_LABEL[type];
+      chip.title = CHIP_TITLE[type];
+      chip.setAttribute("aria-label", CHIP_TITLE[type]);
+      chip.addEventListener("click", (e)=>{ e.stopPropagation(); onPick(type); });
+      row.appendChild(chip);
+    });
+    return row;
+  }
+
+  let reassignOpenDay = null;
+
+  function renderDays(){
+    const el = document.getElementById("days");
+    el.innerHTML = "";
+    DAY_KEYS.forEach(([dayKey, dayLabel])=>{
+      const type = effectiveType(ui.week, dayKey);
+      const meta = DAYTYPE_META[type] || DAYTYPE_META.rest;
+      const isOverridden = !!(overrides[ui.week] && overrides[ui.week][dayKey]);
+      const items = dayItems(type);
+      let done=0;
+      items.forEach(it=>{ if(checklist["w"+ui.week+"-"+dayKey+"-"+it.id]) done++; });
+
+      const card = document.createElement("div");
+      card.className = "day";
+      card.setAttribute("data-open", ui.openDays[dayKey] ? "1":"0");
+      card.setAttribute("data-reassign", reassignOpenDay===dayKey ? "1":"0");
+
+      const head = document.createElement("div");
+      head.className = "day-head";
+      head.tabIndex = 0;
+      head.innerHTML =
+        '<div class="day-title"><span class="lbl">'+dayLabel+(isOverridden?'<span class="tag-override">angepasst</span>':'')+'</span>'+
+        '<span class="s">'+meta.label+(meta.sub?" · "+meta.sub:"")+'</span></div>'+
+        '<div class="day-right"><span class="count">'+done+'/'+items.length+'</span></div>';
+      const right = head.querySelector(".day-right");
+
+      const reBtn = document.createElement("button");
+      reBtn.type = "button";
+      reBtn.className = "iconbtn";
+      reBtn.setAttribute("aria-label","Tag verschieben");
+      reBtn.textContent = "🔀";
+      reBtn.addEventListener("click", (e)=>{
+        e.stopPropagation();
+        reassignOpenDay = (reassignOpenDay===dayKey) ? null : dayKey;
+        renderDays();
+      });
+      right.appendChild(reBtn);
+
+      const chev = document.createElement("span");
+      chev.className = "chev";
+      right.appendChild(chev);
+
+      head.addEventListener("click", ()=>{ ui.openDays[dayKey] = !ui.openDays[dayKey]; saveJSON("ui-state", ui); renderDays(); });
+      card.appendChild(head);
+
+      const reassignWrap = document.createElement("div");
+      reassignWrap.className = "reassign";
+      const relabel = document.createElement("div");
+      relabel.className = "reassign-label";
+      relabel.textContent = "Nur diese Woche verschieben auf:";
+      reassignWrap.appendChild(relabel);
+      reassignWrap.appendChild(buildChipRow(type, (newType)=>{
+        if(!overrides[ui.week]) overrides[ui.week] = {};
+        overrides[ui.week][dayKey] = newType;
+        saveJSON("week-overrides", overrides);
+        reassignOpenDay = null;
+        renderAll();
+      }));
+      if(isOverridden){
+        const reset = document.createElement("button");
+        reset.type = "button";
+        reset.className = "resetlink";
+        reset.textContent = "Zurück zum Standard ("+CHIP_TITLE[template[dayKey]]+")";
+        reset.addEventListener("click", (e)=>{
+          e.stopPropagation();
+          delete overrides[ui.week][dayKey];
+          if(Object.keys(overrides[ui.week]).length===0) delete overrides[ui.week];
+          saveJSON("week-overrides", overrides);
+          reassignOpenDay = null;
+          renderAll();
+        });
+        reassignWrap.appendChild(reset);
+      }
+      card.appendChild(reassignWrap);
+
+      const body = document.createElement("div");
+      body.className = "day-body";
+
+      if(meta.kind==="rest"){
+        const p = document.createElement("div");
+        p.className = "rest-note";
+        p.textContent = "Voller Ruhetag. Kein Training – auch wenn es gut läuft.";
+        body.appendChild(p);
+        body.appendChild(buildSimpleRow(dayKey, items[0]));
+      } else if(meta.kind==="workout"){
+        items.forEach(it=> body.appendChild(buildExRow(dayKey, it.id)));
+      } else {
+        items.forEach(it=> body.appendChild(buildSimpleRow(dayKey, it)));
+      }
+
+      card.appendChild(body);
+      el.appendChild(card);
+    });
+  }
+
+  function buildExRow(dayKey, id){
+    const key = "w"+ui.week+"-"+dayKey+"-"+id;
+    const checked = !!checklist[key];
+    const row = document.createElement("div");
+    row.className = "ex";
+
+    const chk = document.createElement("div");
+    chk.className = "chk";
+    chk.setAttribute("role","checkbox");
+    chk.setAttribute("aria-checked", checked ? "true":"false");
+    chk.tabIndex = 0;
+    chk.setAttribute("data-checked", checked ? "1":"0");
+    chk.innerHTML = svgCheck();
+    chk.addEventListener("click", ()=> toggle(key));
+    chk.addEventListener("keydown", (e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); toggle(key); } });
+    row.appendChild(chk);
+
+    const main = document.createElement("div");
+    main.className = "ex-main";
+    const idx = weekInCycle(ui.week)-1;
+    main.innerHTML =
+      '<div class="ex-top"><span class="ex-name'+(checked?" done":"")+'">'+NAMES[id]+'</span>'+
+      '<span class="ex-target">'+TARGETS[id][idx]+'</span></div>'+
+      '<div class="ex-cue">'+CUES[id]+'</div>';
+    row.appendChild(main);
+
+    if(VIDEOS[id]){
+      const a = document.createElement("a");
+      a.className = "vidlink";
+      a.href = VIDEOS[id];
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.setAttribute("aria-label","Videoanleitung: "+NAMES[id]);
+      a.innerHTML = svgPlay();
+      row.appendChild(a);
+    }
+    return row;
+  }
+
+  function buildSimpleRow(dayKey, it){
+    const key = "w"+ui.week+"-"+dayKey+"-"+it.id;
+    const checked = !!checklist[key];
+    const row = document.createElement("div");
+    row.className = "simplechk";
+
+    const chk = document.createElement("div");
+    chk.className = "chk";
+    chk.setAttribute("role","checkbox");
+    chk.setAttribute("aria-checked", checked ? "true":"false");
+    chk.tabIndex = 0;
+    chk.setAttribute("data-checked", checked ? "1":"0");
+    chk.innerHTML = svgCheck();
+    chk.addEventListener("click", ()=> toggle(key));
+    chk.addEventListener("keydown", (e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); toggle(key); } });
+    row.appendChild(chk);
+
+    const lbl = document.createElement("span");
+    lbl.className = "lbl2"+(checked?" done":"");
+    lbl.textContent = it.label;
+    row.appendChild(lbl);
+
+    if(it.id==="mob" || it.id==="cooldown"){
+      const a = document.createElement("a");
+      a.className = "vidlink";
+      a.href = VIDEOS.C2;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.setAttribute("aria-label","Mobility-Video");
+      a.innerHTML = svgPlay();
+      row.appendChild(a);
+    }
+    return row;
+  }
+
+  function toggle(key){
+    checklist[key] = !checklist[key];
+    saveJSON("checklist-state", checklist);
+    renderDays();
+    renderPhaseRow();
+  }
+
+  // ---- Standard-Wochenplan editor ----
+  function renderTemplateEditor(){
+    const wrap = document.getElementById("tpl-rows");
+    wrap.innerHTML = "";
+    DAY_KEYS.forEach(([dayKey, dayLabel])=>{
+      const row = document.createElement("div");
+      row.className = "tplrow";
+      const lbl = document.createElement("div");
+      lbl.className = "tpllabel";
+      lbl.textContent = dayLabel;
+      row.appendChild(lbl);
+      row.appendChild(buildChipRow(template[dayKey], (newType)=>{
+        template[dayKey] = newType;
+        saveJSON("day-template", template);
+        renderAll();
+      }));
+      wrap.appendChild(row);
+    });
+  }
+
+  // ---- Extras: collapsibles ----
+  document.querySelectorAll(".ext-head[data-toggle]").forEach(h=>{
+    h.addEventListener("click", ()=>{
+      const id = h.getAttribute("data-toggle");
+      const card = document.getElementById(id);
+      const open = card.getAttribute("data-open")==="1";
+      card.setAttribute("data-open", open ? "0":"1");
+      ui.openExt[id] = !open;
+      saveJSON("ui-state", ui);
+    });
+  });
+
+  // ---- Check-in ----
+  function fillCheckinInputs(){
+    const w = ui.week;
+    const data = checkin[w] || {};
+    document.querySelectorAll("[data-ci]").forEach(inp=>{
+      const field = inp.getAttribute("data-ci");
+      inp.value = data[field] !== undefined ? data[field] : "";
+    });
+  }
+  document.querySelectorAll("[data-ci]").forEach(inp=>{
+    inp.addEventListener("change", ()=>{
+      const w = ui.week;
+      if(!checkin[w]) checkin[w] = {};
+      const field = inp.getAttribute("data-ci");
+      checkin[w][field] = inp.value;
+      saveJSON("checkin-data", checkin);
+      if(document.getElementById("histwrap").innerHTML) renderHistory();
+    });
+  });
+
+  function renderHistory(){
+    const wrap = document.getElementById("histwrap");
+    const weeks = Object.keys(checkin).map(Number).sort((a,b)=>a-b);
+    let rows = "";
+    weeks.forEach(w=>{
+      const d = checkin[w];
+      if(!d) return;
+      rows += "<tr><td>W"+w+"</td><td>"+(d.gewicht||"–")+"</td><td>"+(d.bauch||"–")+"</td>"+
+        "<td>"+(d.fitness||"–")+"</td><td>"+(d.energie||"–")+"</td></tr>";
+    });
+    if(!rows){ wrap.innerHTML = '<p style="font-size:12px;margin-top:8px;">Noch keine Einträge.</p>'; return; }
+    wrap.innerHTML = '<table class="hist"><tr><th>Wo.</th><th>kg</th><th>cm</th><th>Fit.</th><th>En.</th></tr>'+rows+'</table>';
+  }
+  document.getElementById("histtoggle").addEventListener("click", (e)=>{
+    const wrap = document.getElementById("histwrap");
+    if(wrap.innerHTML){ wrap.innerHTML=""; e.target.textContent="Verlauf anzeigen"; }
+    else { renderHistory(); e.target.textContent="Verlauf ausblenden"; }
+  });
+
+  // ---- Week nav controls ----
+  document.getElementById("wprev").addEventListener("click", ()=> goWeek(ui.week-1));
+  document.getElementById("wnext").addEventListener("click", ()=> goWeek(ui.week+1));
+  document.getElementById("weeknav-center").addEventListener("click", ()=>{
+    const jw = document.getElementById("jumpwrap");
+    jw.classList.toggle("show");
+    if(jw.classList.contains("show")){
+      document.getElementById("jumpinput").value = ui.week;
+      document.getElementById("jumpinput").focus();
+    }
+  });
+  function doJump(){
+    const v = parseInt(document.getElementById("jumpinput").value, 10);
+    if(v && v>=1){ document.getElementById("jumpwrap").classList.remove("show"); goWeek(v); }
+  }
+  document.getElementById("jumpgo").addEventListener("click", doJump);
+  document.getElementById("jumpinput").addEventListener("keydown", (e)=>{ if(e.key==="Enter") doJump(); });
+
+  function renderAll(){
+    renderWeekNav();
+    renderWeekStrip();
+    renderPhaseRow();
+    renderDays();
+    renderTemplateEditor();
+    fillCheckinInputs();
+  }
+
+  async function init(){
+    checklist = await loadJSON("checklist-state", {});
+    checkin = await loadJSON("checkin-data", {});
+    template = await loadJSON("day-template", Object.assign({}, DEFAULT_TEMPLATE));
+    overrides = await loadJSON("week-overrides", {});
+    const savedUi = await loadJSON("ui-state", null);
+    if(savedUi){ ui = savedUi; if(!ui.openDays) ui.openDays={mo:true}; if(!ui.openExt) ui.openExt={}; if(!ui.week) ui.week=1; }
+
+    Object.keys(ui.openExt||{}).forEach(id=>{
+      const card = document.getElementById(id);
+      if(card && ui.openExt[id]) card.setAttribute("data-open","1");
+    });
+
+    renderAll();
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
